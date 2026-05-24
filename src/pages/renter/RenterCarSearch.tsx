@@ -277,7 +277,7 @@ const RenterCarSearch = () => {
                   <Tooltip
                     contentStyle={{ backgroundColor: '#1e2a3b', border: '1px solid #2d3748', borderRadius: '8px', color: '#e2e8f0', fontSize: '12px' }}
                     labelFormatter={(label) => new Date(label).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    formatter={(value: number) => [`${value.toLocaleString('ru-RU')} BYN`, 'Цена']}
+                    formatter={(value: any) => [`${Number(value).toLocaleString('ru-RU')} BYN`, 'Цена']}
                   />
                   <Area type="monotone" dataKey="price" stroke="#6C63FF" strokeWidth={2} fill="url(#priceGradient)" dot={false} activeDot={{ r: 4, fill: '#6C63FF' }} />
                 </AreaChart>

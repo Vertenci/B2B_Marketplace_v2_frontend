@@ -26,6 +26,7 @@ import RenterFinances from '../pages/renter/RenterFinances';
 import RenterReports from '../pages/renter/RenterReports';
 
 import DriverRentals from '../pages/driver/DriverRentals';
+import PlatformNotifications from '../pages/PlatformNotifications';
 
 import { AppLayout } from '../components/layout/AppLayout';
 
@@ -78,6 +79,7 @@ export const router = createBrowserRouter([
         children: [
           { path: '/dashboard', element: <Dashboard /> },
           { path: '/profile', element: <Profile /> },
+          { path: '/platform-notifications', element: <PlatformNotifications /> },
         ],
       },
 

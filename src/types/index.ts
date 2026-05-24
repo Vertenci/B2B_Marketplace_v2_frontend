@@ -324,6 +324,18 @@ export interface DriverCompanyUser {
   } | null;
 }
 
+export interface PlatformNotification {
+  id: string;
+  title: string;
+  details: string;
+  created_at: string;
+}
+
+export interface NotificationListResponse {
+  notifications: PlatformNotification[];
+  total: number;
+}
+
 export interface Agreement {
   id: string;
   user_id: string;

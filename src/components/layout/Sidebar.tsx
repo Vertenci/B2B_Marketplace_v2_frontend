@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, Car, MapPin, FileText,
   Package, DollarSign, Users, User, LogOut,
-  Truck, Search, Bell, BarChart3
+  Truck, Search, Bell, BarChart3, Megaphone
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useLogout } from '../../hooks/useAuth';
@@ -149,6 +149,21 @@ export const Sidebar = ({ companyType, companies, activeCompany, onSelectCompany
             Мой профиль
           </NavLink>
         )}
+
+        {/* Platform notifications */}
+        <NavLink
+          to="/platform-notifications"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium mb-2 transition-colors ${
+              isActive
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/25 hover:border-emerald-500/40'
+            }`
+          }
+        >
+          <Megaphone size={18} />
+          Изменения на платформе
+        </NavLink>
 
         {/* Company section */}
         {navItems.length > 0 && (
