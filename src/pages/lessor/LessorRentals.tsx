@@ -181,6 +181,11 @@ const LessorRentals = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['lessor-rentals', companyId] }),
   });
 
+  const daysUntilEnd = (endDate: string) => {
+    const diff = new Date(endDate).getTime() - Date.now();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
+
   const downloadMutation = useMutation({
     mutationFn: ({ rentalId, type }: { rentalId: string; type: string }) =>
       lessorService.downloadDocument(companyId!, rentalId, type),
@@ -229,6 +234,13 @@ const LessorRentals = () => {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <Badge variant={statusConfig[rental.status].variant}>{statusConfig[rental.status].label}</Badge>
+                  {rental.status === 'ACTIVE' && (() => {
+                    const days = daysUntilEnd(rental.end_date);
+                    if (days <= 0) return <Badge variant="red">Сегодня</Badge>;
+                    if (days === 1) return <Badge variant="yellow">Завтра</Badge>;
+                    if (days <= 3) return <Badge variant="yellow">Скоро</Badge>;
+                    return null;
+                  })()}
                   {rental.is_paid ? <Badge variant="green">Оплачена</Badge> : <Badge variant="yellow">Не оплачена</Badge>}
                   <span className="text-gray-500 text-xs">{new Date(rental.created_at).toLocaleDateString('ru-RU')}</span>
                 </div>

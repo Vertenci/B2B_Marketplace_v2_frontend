@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -14,6 +13,21 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
         ws: false,
+      },
+      '/admin': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/minio': {  // Используйте без rewrite
+        target: 'http://127.0.0.1:9001',
+        changeOrigin: true,
+        ws: true,
+        // НЕ используйте rewrite, оставьте /minio в пути
+      },
+      '/storage': {
+        target: 'http://127.0.0.1:9000',
+        changeOrigin: true,
       }
     },
     allowedHosts: [

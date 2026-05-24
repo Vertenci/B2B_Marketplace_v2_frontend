@@ -8,6 +8,7 @@ import 'leaflet/dist/leaflet.css';
 import { lessorService } from '../../services/lessorService';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
+import type { CarStatus } from '../../types';
 
 // Fix leaflet marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -187,6 +188,9 @@ const LessorGeofences = () => {
     refetchOnMount: true,
   });
 
+  const takenCarIds = new Set(geofences?.map(g => g.car_id).filter(Boolean) ?? []);
+  const freeCars = cars?.filter(c => !takenCarIds.has(c.id));
+
   const createMutation = useMutation({
     mutationFn: () => lessorService.createGeofence(companyId!, selectedCarId, {
       name: form.name,
@@ -256,7 +260,7 @@ const LessorGeofences = () => {
       {/* Main layout: map (left) + list (right) */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Map — занимает 3/5 ширины */}
-        <div className="lg:col-span-3 bg-white/5 border border-white/10 rounded-2xl overflow-hidden" style={{ height: 520 }}>
+        <div className="lg:col-span-3 bg-white/5 border border-white/10 rounded-2xl overflow-hidden" style={{ height: 'calc(100vh - 220px)' }}>
           <MapContainer center={mapCenter} zoom={12} style={{ height: '100%', width: '100%' }}>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             {flyTo && <MapFlyTo center={flyTo} key={flyTo.toString()} />}
@@ -286,7 +290,7 @@ const LessorGeofences = () => {
         </div>
 
         {/* List — занимает 2/5 ширины */}
-        <div className="lg:col-span-2 flex flex-col" style={{ maxHeight: 520 }}>
+        <div className="lg:col-span-2 flex flex-col" style={{ maxHeight: 'calc(100vh - 220px)' }}>
           <div className="flex flex-col gap-3 overflow-y-auto flex-1">
             {isLoading && <div className="text-center py-8"><Loader2 size={24} className="animate-spin mx-auto text-[#6C63FF]" /></div>}
 
@@ -318,14 +322,24 @@ const LessorGeofences = () => {
                         {geo.car && (
                           <p className="text-gray-600 text-xs mt-0.5 truncate">
                             {geo.car.brand} {geo.car.model} ({geo.car.plate_number})
+                            {geo.car.status === 'RENTED' && (
+                              <span className="text-blue-400 ml-1">· В аренде</span>
+                            )}
                           </p>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                       <button
-                        onClick={e => { e.stopPropagation(); toggleMutation.mutate(geo.id); }}
-                        className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+                        onClick={e => {
+                          e.stopPropagation();
+                          if (geo.is_active && geo.car && geo.car.status !== 'HIDDEN') {
+                            alert('Сначала сделайте статус машины скрытой');
+                            return;
+                          }
+                          toggleMutation.mutate(geo.id);
+                        }}
+                        className="p-1.5 rounded-lg transition-colors hover:bg-white/10 text-gray-400 hover:text-white"
                       >
                         {geo.is_active
                           ? <ToggleRight size={18} className="text-[#6C63FF]" />
@@ -333,8 +347,19 @@ const LessorGeofences = () => {
                         }
                       </button>
                       <button
-                        onClick={e => { e.stopPropagation(); if (confirm('Удалить геозону?')) deleteMutation.mutate(geo.id); }}
-                        className="p-1.5 bg-red-500/10 hover:bg-red-500/20 rounded-lg text-red-400 transition-colors"
+                        onClick={e => {
+                          e.stopPropagation();
+                          if (geo.car && geo.car.status !== 'HIDDEN') {
+                            alert('Сначала сделайте статус машины скрытой');
+                            return;
+                          }
+                          if (confirm('Удалить геозону?')) deleteMutation.mutate(geo.id);
+                        }}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          geo.car && geo.car.status !== 'HIDDEN'
+                            ? 'bg-gray-500/10 text-gray-600 cursor-not-allowed'
+                            : 'bg-red-500/10 hover:bg-red-500/20 text-red-400'
+                        }`}
                       >
                         <Trash2 size={13} />
                       </button>
@@ -389,7 +414,7 @@ const LessorGeofences = () => {
                 className="w-full px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:border-[#6C63FF]/60 text-sm"
               >
                 <option value="">-- Выберите машину --</option>
-                {cars?.map(car => (
+                {freeCars?.map(car => (
                   <option key={car.id} value={car.id}>
                     {car.brand} {car.model} ({car.plate_number})
                   </option>
@@ -447,7 +472,7 @@ const LessorGeofences = () => {
         </div>
 
         {/* Мини-карта — снизу, полная ширина */}
-        <div className="rounded-xl overflow-hidden border border-white/10" style={{ height: 280 }}>
+        <div className="rounded-xl overflow-hidden border border-white/10" style={{ height: 340 }}>
           <MapContainer
             center={miniCenter}
             zoom={12}

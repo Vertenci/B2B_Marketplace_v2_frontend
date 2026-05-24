@@ -44,6 +44,7 @@ export const renterService = {
   async searchCars(companyId: string, filters?: {
     brand?: string; model?: string; year?: string;
     min_price?: number; max_price?: number; status?: CarStatus;
+    company_name?: string;
     skip?: number; limit?: number;
   }): Promise<Car[]> {
     const res = await apiClient.get(`${base(companyId)}/cars`, { params: filters });
@@ -55,8 +56,10 @@ export const renterService = {
     return res.data;
   },
 
-  async getRequests(companyId: string, skip = 0, limit = 20): Promise<RentalRequest[]> {
-    const res = await apiClient.get(`${base(companyId)}/requests`, { params: { skip, limit } });
+  async getRequests(companyId: string, status?: string, skip = 0, limit = 20): Promise<RentalRequest[]> {
+    const params: Record<string, unknown> = { skip, limit };
+    if (status) params.status = status;
+    const res = await apiClient.get(`${base(companyId)}/requests`, { params });
     return res.data;
   },
 
@@ -78,9 +81,9 @@ export const renterService = {
     return res.data;
   },
 
-  async getRentals(companyId: string, status?: RentalStatus, skip = 0, limit = 20): Promise<Rental[]> {
+  async getRentals(companyId: string, status?: RentalStatus, skip = 0, limit = 20, driverId?: string): Promise<Rental[]> {
     const res = await apiClient.get(`${base(companyId)}/rentals`, {
-      params: { status, skip, limit },
+      params: { status, driver_id: driverId, skip, limit },
     });
     return res.data;
   },
@@ -107,6 +110,11 @@ export const renterService = {
 
   async getRentalDocuments(companyId: string, rentalId: string): Promise<RentalDocument[]> {
     const res = await apiClient.get(`${base(companyId)}/rentals/${rentalId}/documents`);
+    return res.data;
+  },
+
+  async completeRental(companyId: string, rentalId: string): Promise<Rental> {
+    const res = await apiClient.post(`${base(companyId)}/rentals/${rentalId}/complete`);
     return res.data;
   },
 

@@ -1,30 +1,43 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Car, Filter, Loader2, Plus, Calendar } from 'lucide-react';
+import { Search, Car, Filter, Loader2, Plus, Calendar, MapPin, Building2 } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { renterService } from '../../services/renterService';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
+
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 const RenterCarSearch = () => {
   const { companyId } = useParams<{ companyId: string }>();
   const queryClient = useQueryClient();
   const [brand, setBrand] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [requestModal, setRequestModal] = useState<{ carId: string; pricePerDay: number } | null>(null);
+  const [mapModalCar, setMapModalCar] = useState<string | null>(null);
   const [reqForm, setReqForm] = useState({ driver_id: '', start_date: '', end_date: '', message: '' });
 
   const { data: cars, isLoading, refetch } = useQuery({
-    queryKey: ['renter-cars', companyId, brand, maxPrice],
+    queryKey: ['renter-cars', companyId, brand, maxPrice, companyName],
     queryFn: () => renterService.searchCars(companyId!, {
       brand: brand || undefined,
       max_price: maxPrice ? Number(maxPrice) : undefined,
+      company_name: companyName || undefined,
       limit: 30,
     }),
     enabled: !!companyId,
-    staleTime: 0,           // всегда считать данные устаревшими
-    refetchOnMount: true,   // рефетч при монтировании компонента
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const { data: drivers } = useQuery({
@@ -58,7 +71,6 @@ const RenterCarSearch = () => {
     <div className="p-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-white mb-4">Поиск автомобилей</h1>
-        {/* Filters */}
         <div className="flex gap-3 flex-wrap">
           <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5">
             <Search size={16} className="text-gray-400" />
@@ -70,6 +82,11 @@ const RenterCarSearch = () => {
             <input type="number" placeholder="Макс. цена/день" value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
               className="bg-transparent text-white text-sm focus:outline-none w-32 placeholder-gray-500" />
             <span className="text-gray-500 text-sm">₽</span>
+          </div>
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5">
+            <Building2 size={16} className="text-gray-400" />
+            <input type="text" placeholder="Компания" value={companyName} onChange={e => setCompanyName(e.target.value)}
+              className="bg-transparent text-white text-sm focus:outline-none w-40 placeholder-gray-500" />
           </div>
           <button onClick={() => refetch()} className="flex items-center gap-2 px-4 py-2.5 bg-[#6C63FF] hover:bg-[#5a52d6] rounded-xl text-white text-sm transition-colors">
             <Filter size={14} />Найти
@@ -93,13 +110,28 @@ const RenterCarSearch = () => {
                 </div>
                 <p className="text-gray-500 text-sm">{car.year} · {car.plate_number}</p>
                 <p className="text-green-400 font-semibold mt-1">{Number(car.price_per_day).toLocaleString('ru-RU')} ₽/день</p>
-                {car.company && <p className="text-gray-600 text-xs mt-1">{car.company.name}</p>}
-                <button
-                  onClick={() => setRequestModal({ carId: car.id, pricePerDay: Number(car.price_per_day) })}
-                  className="mt-3 w-full flex items-center justify-center gap-2 py-2 bg-[#6C63FF]/10 border border-[#6C63FF]/20 hover:bg-[#6C63FF]/20 text-[#6C63FF] rounded-xl text-sm transition-colors"
-                >
-                  <Plus size={14} />Оформить заявку
-                </button>
+                {car.company && (
+                  <p className="flex items-center gap-1 text-gray-500 text-xs mt-1">
+                    <Building2 size={12} />
+                    {car.company.name}
+                  </p>
+                )}
+                <div className="flex gap-2 mt-3">
+                  {car.iot_device && (
+                    <button
+                      onClick={() => setMapModalCar(car.id)}
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 text-blue-400 rounded-xl text-xs transition-colors"
+                    >
+                      <MapPin size={12} />Геопозиция
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setRequestModal({ carId: car.id, pricePerDay: Number(car.price_per_day) })}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 bg-[#6C63FF]/10 border border-[#6C63FF]/20 hover:bg-[#6C63FF]/20 text-[#6C63FF] rounded-xl text-sm transition-colors"
+                  >
+                    <Plus size={14} />Оформить заявку
+                  </button>
+                </div>
               </div>
             </div>
           </Card>
@@ -112,7 +144,6 @@ const RenterCarSearch = () => {
         )}
       </div>
 
-      {/* Request Modal */}
       <Modal isOpen={!!requestModal} onClose={() => setRequestModal(null)} title="Заявка на аренду" size="lg">
         <div className="space-y-4">
           <div>
@@ -168,6 +199,36 @@ const RenterCarSearch = () => {
             </button>
           </div>
         </div>
+      </Modal>
+
+      <Modal isOpen={!!mapModalCar} onClose={() => setMapModalCar(null)} title="Геопозиция" size="xl">
+        {mapModalCar && (() => {
+          const car = cars?.find(c => c.id === mapModalCar);
+          const telemetry = car?.telemetries?.[car.telemetries.length - 1];
+          const lat = telemetry ? Number(telemetry.lat) : (car?.iot_device?.last_lat ? Number(car.iot_device.last_lat) : null);
+          const lng = telemetry ? Number(telemetry.lng) : (car?.iot_device?.last_lng ? Number(car.iot_device.last_lng) : null);
+          const updatedAt = telemetry?.recorded_at || car?.iot_device?.last_seen_at;
+          if (lat === null || lng === null) return <div className="text-center py-8 text-gray-500"><MapPin size={32} className="mx-auto mb-2 opacity-40" /><p>Нет данных телеметрии</p></div>;
+          return (
+            <>
+              <div className="rounded-xl overflow-hidden" style={{ height: 380 }}>
+                <MapContainer center={[lat, lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <Marker position={[lat, lng]}>
+                    <Popup>
+                      {car?.brand} {car?.model} ({car?.plate_number})<br />
+                      {updatedAt ? new Date(updatedAt).toLocaleString('ru-RU') : ''}
+                    </Popup>
+                  </Marker>
+                </MapContainer>
+              </div>
+              <div className="mt-3 flex gap-4 text-sm text-gray-400">
+                <span>Координаты: <span className="text-white">{lat.toFixed(5)}, {lng.toFixed(5)}</span></span>
+                <span>Обновлено: <span className="text-white">{updatedAt ? new Date(updatedAt).toLocaleString('ru-RU') : '—'}</span></span>
+              </div>
+            </>
+          );
+        })()}
       </Modal>
     </div>
   );

@@ -213,4 +213,9 @@ export const lessorService = {
     );
     return res.data;
   },
+
+  async detachIot(companyId: string, carId: string): Promise<Car> {
+      const res = await apiClient.delete(`${base(companyId)}/cars/${carId}/detach-iot`);
+      return res.data;
+  },
 };

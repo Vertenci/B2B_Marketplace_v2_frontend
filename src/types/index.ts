@@ -102,6 +102,9 @@ export interface IotDeviceShort {
   sim_number: string | null;
   battery_level: number | null;
   is_online: boolean;
+  last_seen_at?: string | null;
+  last_lat?: number | null;
+  last_lng?: number | null;
 }
 
 export interface GeofenceShort {
@@ -147,7 +150,10 @@ export interface IotDevice {
   sim_number: string | null;
   battery_level: number | null;
   is_online: boolean;
-  car: { id: string } | null;
+  last_seen_at?: string | null;
+  last_lat?: number | null;
+  last_lng?: number | null;
+  car: { id: string; brand?: string | null; model?: string | null; plate_number?: string | null } | null;
 }
 
 export interface Geofence {
@@ -164,6 +170,7 @@ export interface Geofence {
     brand: string;
     model: string;
     plate_number: string;
+    status: CarStatus;
   };
 }
 

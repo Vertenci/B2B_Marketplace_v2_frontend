@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Package, MapPin, AlertTriangle, DollarSign, Download, Loader2, Car, Calendar } from 'lucide-react';
+import { Package, MapPin, AlertTriangle, DollarSign, Download, Loader2, Car, Calendar, CheckSquare, ChevronLeft, ChevronRight, ChevronsLeft, Building2 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -24,18 +24,148 @@ const statusConfig: Record<RentalStatus, { label: string; variant: 'green' | 'gr
   OVERDUE: { label: 'Просрочена', variant: 'red' },
 };
 
+const PAGE_SIZE = 10;
+const MAX_VISIBLE_PAGES = 5;
+
+const Pagination = ({
+  currentPage,
+  totalPages,
+  onPageChange,
+  isLoading,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  isLoading: boolean;
+}) => {
+  if (totalPages <= 1) return null;
+
+  const getVisiblePages = () => {
+    const pages: (number | 'ellipsis')[] = [];
+    
+    if (totalPages <= MAX_VISIBLE_PAGES + 2) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      
+      let start = Math.max(2, currentPage - Math.floor(MAX_VISIBLE_PAGES / 2));
+      let end = Math.min(totalPages - 1, start + MAX_VISIBLE_PAGES - 1);
+      
+      if (end - start < MAX_VISIBLE_PAGES - 1) {
+        start = Math.max(2, end - MAX_VISIBLE_PAGES + 1);
+      }
+      
+      if (start > 2) {
+        pages.push('ellipsis');
+      }
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (end < totalPages - 1) {
+        pages.push('ellipsis');
+      }
+      
+      pages.push(totalPages);
+    }
+    
+    return pages;
+  };
+
+  return (
+    <div className="flex items-center justify-center gap-1 mt-6">
+      <button
+        onClick={() => onPageChange(1)}
+        disabled={currentPage === 1 || isLoading}
+        className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        title="В начало"
+      >
+        <ChevronsLeft size={16} />
+      </button>
+      
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1 || isLoading}
+        className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+      >
+        <ChevronLeft size={16} />
+      </button>
+
+      {getVisiblePages().map((page, index) => {
+        if (page === 'ellipsis') {
+          return (
+            <span key={`ellipsis-${index}`} className="px-2 text-gray-600">
+              ...
+            </span>
+          );
+        }
+
+        return (
+          <button
+            key={page}
+            onClick={() => onPageChange(page)}
+            disabled={isLoading}
+            className={`
+              min-w-[36px] h-9 rounded-lg text-sm font-medium transition-colors
+              ${page === currentPage
+                ? 'bg-[#6C63FF] text-white'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }
+              disabled:opacity-50
+            `}
+          >
+            {page}
+          </button>
+        );
+      })}
+
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages || isLoading}
+        className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+      >
+        <ChevronRight size={16} />
+      </button>
+    </div>
+  );
+};
+
 const RenterRentals = () => {
   const { companyId } = useParams<{ companyId: string }>();
   const queryClient = useQueryClient();
-  const [filter, setFilter] = useState<RentalStatus | undefined>(undefined);
+  const [filter, setFilter] = useState<RentalStatus | 'SOON' | undefined>(undefined);
   const [mapModal, setMapModal] = useState<string | null>(null);
   const [violationsModal, setViolationsModal] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
-  const { data: rentals, isLoading } = useQuery({
-    queryKey: ['renter-rentals', companyId, filter],
-    queryFn: () => renterService.getRentals(companyId!, filter, 0, 50),
+  useEffect(() => {
+    setPage(1);
+  }, [filter]);
+
+  const skip = (page - 1) * PAGE_SIZE;
+
+  const { data: rentals, isLoading, isFetching } = useQuery({
+    queryKey: ['renter-rentals', companyId, filter === 'SOON' ? 'ACTIVE' : filter, page],
+    queryFn: () => renterService.getRentals(companyId!, filter === 'SOON' ? 'ACTIVE' : filter, skip, PAGE_SIZE),
     enabled: !!companyId,
   });
+
+  const daysUntilEnd = (endDate: string) => {
+    const diff = new Date(endDate).getTime() - Date.now();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
+
+  const filteredRentals = filter === 'SOON'
+    ? (rentals || []).filter(r => {
+        const days = daysUntilEnd(r.end_date);
+        return days >= 0 && days <= 3;
+      })
+    : (rentals || []);
+
+  const totalPages = rentals && rentals.length === PAGE_SIZE ? page + 1 : page;
 
   const { data: telemetry } = useQuery({
     queryKey: ['renter-telemetry', mapModal],
@@ -48,6 +178,11 @@ const RenterRentals = () => {
     queryKey: ['renter-violations', violationsModal],
     queryFn: () => renterService.getRentalViolations(companyId!, violationsModal!),
     enabled: !!violationsModal && !!companyId,
+  });
+
+  const completeMutation = useMutation({
+    mutationFn: (rentalId: string) => renterService.completeRental(companyId!, rentalId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['renter-rentals', companyId] }),
   });
 
   const payMutation = useMutation({
@@ -67,15 +202,23 @@ const RenterRentals = () => {
     },
   });
 
+  const filterTabs: { key: typeof filter; label: string }[] = [
+    { key: undefined, label: 'Все' },
+    { key: 'ACTIVE', label: 'Активные' },
+    { key: 'SOON', label: 'Скоро' },
+    { key: 'COMPLETED', label: 'Завершённые' },
+    { key: 'OVERDUE', label: 'Просроченные' },
+  ];
+
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold text-white mb-6">Мои аренды</h1>
 
       <div className="flex gap-2 mb-6">
-        {([undefined, 'ACTIVE', 'COMPLETED', 'OVERDUE'] as (RentalStatus | undefined)[]).map(s => (
-          <button key={s || 'all'} onClick={() => setFilter(s)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filter === s ? 'bg-[#6C63FF] text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'}`}>
-            {s ? statusConfig[s].label : 'Все'}
+        {filterTabs.map(({ key, label }) => (
+          <button key={label} onClick={() => setFilter(key)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filter === key ? 'bg-[#6C63FF] text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'}`}>
+            {label}
           </button>
         ))}
       </div>
@@ -83,16 +226,23 @@ const RenterRentals = () => {
       {isLoading && <div className="text-center py-12"><Loader2 size={28} className="animate-spin mx-auto text-[#6C63FF]" /></div>}
 
       <div className="space-y-4">
-        {rentals?.map(rental => (
+        {filteredRentals.map(rental => (
           <Card key={rental.id}>
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <Badge variant={statusConfig[rental.status].variant}>{statusConfig[rental.status].label}</Badge>
+                  {rental.status === 'ACTIVE' && (() => {
+                    const days = daysUntilEnd(rental.end_date);
+                    if (days <= 0) return <Badge variant="red">Сегодня</Badge>;
+                    if (days === 1) return <Badge variant="yellow">Завтра</Badge>;
+                    if (days <= 3) return <Badge variant="yellow">Скоро</Badge>;
+                    return null;
+                  })()}
                   {!rental.is_paid && rental.status === 'COMPLETED' && <Badge variant="red">Не оплачена</Badge>}
                   {rental.is_paid && <Badge variant="green">Оплачена</Badge>}
                 </div>
-                <div className="grid md:grid-cols-2 gap-3 mb-3">
+                <div className="grid md:grid-cols-3 gap-3 mb-3">
                   {rental.car && (
                     <div className="flex items-start gap-2 p-3 bg-white/5 rounded-xl">
                       <Car size={14} className="text-[#6C63FF] mt-0.5" />
@@ -111,6 +261,16 @@ const RenterRentals = () => {
                       <p className="text-sm text-white">— {new Date(rental.end_date).toLocaleDateString('ru-RU')}</p>
                     </div>
                   </div>
+                  {rental.lessor_company && (
+                    <div className="flex items-start gap-2 p-3 bg-white/5 rounded-xl">
+                      <Building2 size={14} className="text-emerald-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500">Компания</p>
+                        <p className="text-sm text-white font-medium">{rental.lessor_company.name}</p>
+                        <p className="text-xs text-gray-500">{rental.lessor_company.inn}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-4 text-sm">
                   <span className="text-gray-400">Стоимость: <span className="text-white font-medium">{Number(rental.base_price_total).toLocaleString('ru-RU')} ₽</span></span>
@@ -129,6 +289,14 @@ const RenterRentals = () => {
                       className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 border border-yellow-500/20 hover:bg-yellow-500/20 text-yellow-400 rounded-lg text-xs transition-colors">
                       <AlertTriangle size={12} />Нарушения
                     </button>
+                    {daysUntilEnd(rental.end_date) <= 0 && (
+                      <button onClick={() => { if (confirm('Завершить аренду?')) completeMutation.mutate(rental.id); }}
+                        disabled={completeMutation.isPending}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 text-green-400 rounded-lg text-xs transition-colors">
+                        {completeMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <CheckSquare size={12} />}
+                        Завершить
+                      </button>
+                    )}
                   </>
                 )}
                 {rental.status === 'COMPLETED' && !rental.is_paid && (
@@ -138,24 +306,42 @@ const RenterRentals = () => {
                     Оплатить
                   </button>
                 )}
-                {['contract', 'act', 'invoice'].map(type => (
-                  <button key={type} onClick={() => downloadMutation.mutate({ rentalId: rental.id, type })}
-                    disabled={downloadMutation.isPending}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 rounded-lg text-xs transition-colors">
-                    <Download size={12} />{type === 'contract' ? 'Договор' : type === 'act' ? 'Акт' : 'Счёт'}
-                  </button>
-                ))}
+                {['contract', 'act', 'invoice'].map(type => {
+                  const canDownload = type === 'contract' || rental.status === 'COMPLETED';
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => { if (canDownload) downloadMutation.mutate({ rentalId: rental.id, type }); }}
+                      disabled={!canDownload || downloadMutation.isPending}
+                      title={!canDownload && type !== 'contract' ? 'Можно скачать после аренды' : undefined}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                        canDownload
+                          ? 'bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400'
+                          : 'bg-white/5 border border-white/10 text-gray-600 cursor-not-allowed'
+                      }`}
+                    >
+                      <Download size={12} />{type === 'contract' ? 'Договор' : type === 'act' ? 'Акт' : 'Счёт'}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </Card>
         ))}
-        {!rentals?.length && !isLoading && (
+        {!filteredRentals.length && !isLoading && (
           <div className="text-center py-16 text-gray-600 border border-dashed border-white/10 rounded-2xl">
             <Package size={40} className="mx-auto mb-3 opacity-30" />
             <p>Аренд нет</p>
           </div>
         )}
       </div>
+
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        isLoading={isFetching}
+      />
 
       {/* Map Modal */}
       <Modal isOpen={!!mapModal} onClose={() => setMapModal(null)} title="Текущее положение авто" size="xl">

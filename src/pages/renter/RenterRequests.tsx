@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FileText, XCircle, Car, Calendar, Loader2 } from 'lucide-react';
+import { FileText, XCircle, Car, Calendar, Loader2, Building2 } from 'lucide-react';
 import { renterService } from '../../services/renterService';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -16,10 +17,11 @@ const statusConfig: Record<RentalRequestStatus, { label: string; variant: 'yello
 const RenterRequests = () => {
   const { companyId } = useParams<{ companyId: string }>();
   const queryClient = useQueryClient();
+  const [filter, setFilter] = useState<RentalRequestStatus | undefined>(undefined);
 
   const { data: requests, isLoading } = useQuery({
-    queryKey: ['renter-requests', companyId],
-    queryFn: () => renterService.getRequests(companyId!, 0, 50),
+    queryKey: ['renter-requests', companyId, filter],
+    queryFn: () => renterService.getRequests(companyId!, filter, 0, 50),
     enabled: !!companyId,
   });
 
@@ -28,9 +30,27 @@ const RenterRequests = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['renter-requests', companyId] }),
   });
 
+  const filterTabs: { key: typeof filter; label: string }[] = [
+    { key: undefined, label: 'Все' },
+    { key: 'PENDING', label: 'Ожидают' },
+    { key: 'APPROVED', label: 'Одобрены' },
+    { key: 'REJECTED', label: 'Отклонены' },
+    { key: 'CANCELLED', label: 'Отменены' },
+  ];
+
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold text-white mb-6">Мои заявки</h1>
+
+      <div className="flex gap-2 mb-6">
+        {filterTabs.map(({ key, label }) => (
+          <button key={label} onClick={() => setFilter(key)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filter === key ? 'bg-[#6C63FF] text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
       {isLoading && <div className="text-center py-8"><Loader2 size={24} className="animate-spin mx-auto text-[#6C63FF]" /></div>}
       <div className="space-y-4">
         {requests?.map(req => (
@@ -59,6 +79,12 @@ const RenterRequests = () => {
                     </div>
                   </div>
                 </div>
+                {req.company && (
+                  <p className="flex items-center gap-1 text-gray-500 text-xs mt-2">
+                    <Building2 size={12} />
+                    Компания: {req.company.name}
+                  </p>
+                )}
                 {req.message && <p className="text-xs text-gray-400 mt-2 italic">«{req.message}»</p>}
               </div>
               {req.status === 'PENDING' && (
