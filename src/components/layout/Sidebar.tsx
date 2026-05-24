@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, Car, MapPin, FileText,
   Package, DollarSign, Users, User, LogOut,
-  Truck, Search, Bell
+  Truck, Search, Bell, BarChart3
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useLogout } from '../../hooks/useAuth';
@@ -28,6 +28,7 @@ const LessorNav = (companyId: string): NavItem[] => [
   { to: `/lessor/${companyId}/requests`, icon: Bell, label: 'Заявки' },
   { to: `/lessor/${companyId}/rentals`, icon: Package, label: 'Аренды' },
   { to: `/lessor/${companyId}/finances`, icon: DollarSign, label: 'Финансы' },
+  { to: `/lessor/${companyId}/reports`, icon: BarChart3, label: 'Отчётность' },
   { to: `/lessor/${companyId}/employers`, icon: Users, label: 'Сотрудники' },
   { to: `/lessor/${companyId}/profile`, icon: Building2, label: 'Профиль компании' },
 ];
@@ -39,6 +40,7 @@ const RenterNav = (companyId: string): NavItem[] => [
   { to: `/renter/${companyId}/requests`, icon: FileText, label: 'Заявки' },
   { to: `/renter/${companyId}/rentals`, icon: Truck, label: 'Аренды' },
   { to: `/renter/${companyId}/finances`, icon: DollarSign, label: 'Финансы' },
+  { to: `/renter/${companyId}/reports`, icon: BarChart3, label: 'Отчётность' },
   { to: `/renter/${companyId}/profile`, icon: Building2, label: 'Профиль компании' },
 ];
 

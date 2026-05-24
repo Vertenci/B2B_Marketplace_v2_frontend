@@ -49,7 +49,7 @@ const LessorDashboard = () => {
               <div>
                 <p className="text-gray-400 text-sm">Баланс</p>
                 <p className="text-2xl font-bold text-white mt-1">
-                  {Number(dashboard.balance).toLocaleString('ru-RU')} ₽
+                  {Number(dashboard.balance).toLocaleString('ru-RU')} BYN
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-green-500/20">

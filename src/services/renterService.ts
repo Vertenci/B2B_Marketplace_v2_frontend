@@ -1,7 +1,7 @@
 import { apiClient } from '../api/client';
 import type {
   Car, DriverCompanyUser, RentalRequest, Rental,
-  Finance, Company, RenterDashboard, Telemetry,
+  Finance, Company, RenterDashboard, Telemetry, TelemetryShort,
   Violation, RentalDocument, GeofenceEvent, RentalStatus, CarStatus, BalanceOperationResponse
 } from '../types';
 
@@ -56,6 +56,11 @@ export const renterService = {
     return res.data;
   },
 
+  async getCarPriceHistory(companyId: string, carId: string, period: 'WEEK' | 'MONTH' | 'ALL' = 'ALL'): Promise<{ price: number; created_at: string }[]> {
+    const res = await apiClient.get(`${base(companyId)}/cars/${carId}/price-history`, { params: { period } });
+    return res.data;
+  },
+
   async getRequests(companyId: string, status?: string, skip = 0, limit = 20): Promise<RentalRequest[]> {
     const params: Record<string, unknown> = { skip, limit };
     if (status) params.status = status;
@@ -95,6 +100,11 @@ export const renterService = {
 
   async getRentalTelemetry(companyId: string, rentalId: string): Promise<Telemetry> {
     const res = await apiClient.get(`${base(companyId)}/rentals/${rentalId}/telemetry`);
+    return res.data;
+  },
+
+  async getRentalTelemetryHistory(companyId: string, rentalId: string, limit = 0): Promise<TelemetryShort[]> {
+    const res = await apiClient.get(`${base(companyId)}/rentals/${rentalId}/telemetry/history`, { params: { limit } });
     return res.data;
   },
 
@@ -143,6 +153,26 @@ export const renterService = {
 
   async withdrawBalance(companyId: string, amount: number): Promise<BalanceOperationResponse> {
     const res = await apiClient.post(`${base(companyId)}/finances/withdraw`, { amount });
+    return res.data;
+  },
+
+  async getReportsRentalsByLessor(companyId: string, period: string): Promise<{ company_name: string; count: number }[]> {
+    const res = await apiClient.get(`${base(companyId)}/reports/rentals-by-lessor`, { params: { period } });
+    return res.data;
+  },
+
+  async getReportsRentalsByDriver(companyId: string, period: string): Promise<{ driver_name: string; count: number }[]> {
+    const res = await apiClient.get(`${base(companyId)}/reports/rentals-by-driver`, { params: { period } });
+    return res.data;
+  },
+
+  async getReportsPaymentsToLessors(companyId: string, period: string): Promise<{ company_name: string; total: number }[]> {
+    const res = await apiClient.get(`${base(companyId)}/reports/payments-to-lessors`, { params: { period } });
+    return res.data;
+  },
+
+  async getReportsRequestsByLessor(companyId: string, period: string): Promise<{ company_name: string; PENDING: number; APPROVED: number; REJECTED: number; CANCELLED: number }[]> {
+    const res = await apiClient.get(`${base(companyId)}/reports/requests-by-lessor`, { params: { period } });
     return res.data;
   },
 };

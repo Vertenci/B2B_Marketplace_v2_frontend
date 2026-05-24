@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Package, MapPin, AlertTriangle, DollarSign, Download, Loader2, Car, Calendar, CheckSquare, ChevronLeft, ChevronRight, ChevronsLeft, Building2 } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { renterService } from '../../services/renterService';
@@ -167,11 +167,25 @@ const RenterRentals = () => {
 
   const totalPages = rentals && rentals.length === PAGE_SIZE ? page + 1 : page;
 
+  const { data: mapRental, isLoading: mapRentalLoading } = useQuery({
+    queryKey: ['renter-rental', mapModal],
+    queryFn: () => renterService.getRental(companyId!, mapModal!),
+    enabled: !!mapModal && !!companyId,
+  });
+
+  const isActiveMap = mapRental?.status === 'ACTIVE';
+
   const { data: telemetry } = useQuery({
     queryKey: ['renter-telemetry', mapModal],
     queryFn: () => renterService.getRentalTelemetry(companyId!, mapModal!),
-    enabled: !!mapModal && !!companyId,
-    refetchInterval: 5000,
+    enabled: !!mapModal && !!companyId && isActiveMap,
+    refetchInterval: isActiveMap ? 5000 : false,
+  });
+
+  const { data: telemetryHistory } = useQuery({
+    queryKey: ['renter-telemetry-history', mapModal],
+    queryFn: () => renterService.getRentalTelemetryHistory(companyId!, mapModal!),
+    enabled: !!mapModal && !!companyId && !isActiveMap,
   });
 
   const { data: violations } = useQuery({
@@ -273,37 +287,33 @@ const RenterRentals = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-4 text-sm">
-                  <span className="text-gray-400">Стоимость: <span className="text-white font-medium">{Number(rental.base_price_total).toLocaleString('ru-RU')} ₽</span></span>
-                  {Number(rental.extra_days_fee) > 0 && <span className="text-red-400">+{Number(rental.extra_days_fee).toLocaleString('ru-RU')} ₽</span>}
+                  <span className="text-gray-400">Стоимость: <span className="text-white font-medium">{Number(rental.base_price_total).toLocaleString('ru-RU')} BYN</span></span>
+                  {Number(rental.extra_days_fee) > 0 && <span className="text-red-400">+{Number(rental.extra_days_fee).toLocaleString('ru-RU')} BYN</span>}
                 </div>
               </div>
 
               <div className="flex flex-col gap-2 flex-shrink-0">
-                {rental.status === 'ACTIVE' && (
-                  <>
-                    <button onClick={() => setMapModal(rental.id)}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 text-blue-400 rounded-lg text-xs transition-colors">
-                      <MapPin size={12} />На карте
-                    </button>
-                    <button onClick={() => setViolationsModal(rental.id)}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 border border-yellow-500/20 hover:bg-yellow-500/20 text-yellow-400 rounded-lg text-xs transition-colors">
-                      <AlertTriangle size={12} />Нарушения
-                    </button>
-                    {daysUntilEnd(rental.end_date) <= 0 && (
-                      <button onClick={() => { if (confirm('Завершить аренду?')) completeMutation.mutate(rental.id); }}
-                        disabled={completeMutation.isPending}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 text-green-400 rounded-lg text-xs transition-colors">
-                        {completeMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <CheckSquare size={12} />}
-                        Завершить
-                      </button>
-                    )}
-                  </>
+                <button onClick={() => setMapModal(rental.id)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 text-blue-400 rounded-lg text-xs transition-colors">
+                  <MapPin size={12} />На карте
+                </button>
+                <button onClick={() => setViolationsModal(rental.id)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 border border-yellow-500/20 hover:bg-yellow-500/20 text-yellow-400 rounded-lg text-xs transition-colors">
+                  <AlertTriangle size={12} />Нарушения
+                </button>
+                {rental.status === 'ACTIVE' && daysUntilEnd(rental.end_date) <= 0 && (
+                  <button onClick={() => { if (confirm('Завершить аренду?')) completeMutation.mutate(rental.id); }}
+                    disabled={completeMutation.isPending}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 text-green-400 rounded-lg text-xs transition-colors">
+                    {completeMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <CheckSquare size={12} />}
+                    Завершить
+                  </button>
                 )}
                 {rental.status === 'COMPLETED' && !rental.is_paid && (
                   <button onClick={() => payMutation.mutate(rental.id)} disabled={payMutation.isPending}
                     className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 text-green-400 rounded-lg text-xs transition-colors">
                     {payMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <DollarSign size={12} />}
-                    Оплатить
+                    {`Оплатить ${(Number(rental.base_price_total) + Number(rental.extra_days_fee)).toLocaleString('ru-RU')} BYN`}
                   </button>
                 )}
                 {['contract', 'act', 'invoice'].map(type => {
@@ -344,25 +354,75 @@ const RenterRentals = () => {
       />
 
       {/* Map Modal */}
-      <Modal isOpen={!!mapModal} onClose={() => setMapModal(null)} title="Текущее положение авто" size="xl">
-        <div className="rounded-xl overflow-hidden" style={{ height: 380 }}>
-          {telemetry ? (
+      <Modal isOpen={!!mapModal} onClose={() => setMapModal(null)} title={isActiveMap ? 'Текущее положение авто' : 'Маршрут авто'} size="xl">
+        <div className="rounded-xl overflow-hidden" style={{ height: 450 }}>
+          {mapRentalLoading && (
+            <div className="flex items-center justify-center h-full bg-white/5 rounded-xl">
+              <Loader2 size={24} className="animate-spin text-[#6C63FF]" />
+            </div>
+          )}
+
+          {!mapRentalLoading && isActiveMap && telemetry && (
             <MapContainer center={[Number(telemetry.lat), Number(telemetry.lng)]} zoom={15} style={{ height: '100%', width: '100%' }}>
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               <Marker position={[Number(telemetry.lat), Number(telemetry.lng)]}>
-                <Popup>Скорость: {telemetry.speed} км/ч<br />{new Date(telemetry.recorded_at).toLocaleTimeString('ru-RU')}</Popup>
+                <Popup>
+                  Скорость: {telemetry.speed} км/ч<br />
+                  {new Date(telemetry.recorded_at).toLocaleString('ru-RU')}
+                </Popup>
               </Marker>
             </MapContainer>
-          ) : (
+          )}
+
+          {!mapRentalLoading && !isActiveMap && telemetryHistory && telemetryHistory.length > 0 && (
+            (() => {
+              const points = telemetryHistory.map(t => [Number(t.lat), Number(t.lng)] as [number, number]);
+              const first = points[0];
+              const last = points[points.length - 1];
+              const mid = [(first[0] + last[0]) / 2, (first[1] + last[1]) / 2] as [number, number];
+              return (
+                <MapContainer center={mid} zoom={13} style={{ height: '100%', width: '100%' }}>
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <Polyline positions={points} pathOptions={{ color: '#6C63FF', weight: 3, opacity: 0.7 }} />
+                  <Marker position={first}>
+                    <Popup>Старт<br />{new Date(telemetryHistory[0].recorded_at).toLocaleString('ru-RU')}</Popup>
+                  </Marker>
+                  <Marker position={last}>
+                    <Popup>
+                      Конец<br />
+                      {new Date(telemetryHistory[telemetryHistory.length - 1].recorded_at).toLocaleString('ru-RU')}<br />
+                      Скорость: {telemetryHistory[telemetryHistory.length - 1].speed} км/ч
+                    </Popup>
+                  </Marker>
+                </MapContainer>
+              );
+            })()
+          )}
+
+          {!mapRentalLoading && !isActiveMap && (!telemetryHistory || telemetryHistory.length === 0) && (
+            <div className="flex items-center justify-center h-full bg-white/5 rounded-xl text-gray-500">
+              <div className="text-center"><MapPin size={32} className="mx-auto mb-2 opacity-40" /><p>Нет телеметрии</p></div>
+            </div>
+          )}
+
+          {!mapRentalLoading && isActiveMap && !telemetry && (
             <div className="flex items-center justify-center h-full bg-white/5 rounded-xl text-gray-500">
               <div className="text-center"><MapPin size={32} className="mx-auto mb-2 opacity-40" /><p>Нет телеметрии</p></div>
             </div>
           )}
         </div>
-        {telemetry && (
+        {isActiveMap && telemetry && (
           <div className="mt-3 flex gap-4 text-sm text-gray-400">
             <span>Скорость: <span className="text-white">{telemetry.speed} км/ч</span></span>
+            <span>Координаты: <span className="text-white">{Number(telemetry.lat).toFixed(5)}, {Number(telemetry.lng).toFixed(5)}</span></span>
             <span>Обновлено: <span className="text-white">{new Date(telemetry.recorded_at).toLocaleTimeString('ru-RU')}</span></span>
+          </div>
+        )}
+        {!isActiveMap && telemetryHistory && telemetryHistory.length > 0 && (
+          <div className="mt-3 flex gap-4 text-sm text-gray-400">
+            <span>Точек: <span className="text-white">{telemetryHistory.length}</span></span>
+            <span>Скорость: <span className="text-white">{telemetryHistory[telemetryHistory.length - 1].speed} км/ч</span></span>
+            <span>Завершено: <span className="text-white">{new Date(telemetryHistory[telemetryHistory.length - 1].recorded_at).toLocaleTimeString('ru-RU')}</span></span>
           </div>
         )}
       </Modal>

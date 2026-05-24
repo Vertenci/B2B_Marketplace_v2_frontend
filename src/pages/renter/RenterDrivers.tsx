@@ -146,7 +146,7 @@ const RenterDrivers = () => {
                       <Calendar size={14} />
                       {new Date(rental.start_date).toLocaleDateString('ru-RU')} — {new Date(rental.end_date).toLocaleDateString('ru-RU')}
                     </span>
-                    <span>{rental.base_price_total.toLocaleString('ru-RU')} ₽</span>
+                    <span>{rental.base_price_total.toLocaleString('ru-RU')} BYN</span>
                     <span className="flex items-center gap-1">
                       <MapPin size={14} />
                       {rental.lessor_company?.name || '—'}

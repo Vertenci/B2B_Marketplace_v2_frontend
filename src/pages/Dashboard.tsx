@@ -141,7 +141,7 @@ const Dashboard = () => {
                       <p className="font-semibold text-white">{company.name}</p>
                     </div>
                     <p className="text-gray-500 text-sm ml-10">ИНН: {company.inn}</p>
-                    <p className="text-gray-500 text-sm ml-10">Баланс: {Number(company.balance).toLocaleString('ru-RU')} ₽</p>
+                    <p className="text-gray-500 text-sm ml-10">Баланс: {Number(company.balance).toLocaleString('ru-RU')} BYN</p>
                   </div>
                   <ChevronRight size={18} className="text-gray-600" />
                 </div>
@@ -180,7 +180,7 @@ const Dashboard = () => {
                       <p className="font-semibold text-white">{company.name}</p>
                     </div>
                     <p className="text-gray-500 text-sm ml-10">ИНН: {company.inn}</p>
-                    <p className="text-gray-500 text-sm ml-10">Баланс: {Number(company.balance).toLocaleString('ru-RU')} ₽</p>
+                    <p className="text-gray-500 text-sm ml-10">Баланс: {Number(company.balance).toLocaleString('ru-RU')} BYN</p>
                   </div>
                   <ChevronRight size={18} className="text-gray-600" />
                 </div>

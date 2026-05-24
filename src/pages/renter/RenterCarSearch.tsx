@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Car, Filter, Loader2, Plus, Calendar, MapPin, Building2 } from 'lucide-react';
+import { Search, Car, Filter, Loader2, Plus, Calendar, MapPin, Building2, TrendingUp } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { renterService } from '../../services/renterService';
@@ -20,11 +21,13 @@ L.Icon.Default.mergeOptions({
 const RenterCarSearch = () => {
   const { companyId } = useParams<{ companyId: string }>();
   const queryClient = useQueryClient();
-  const [brand, setBrand] = useState('');
+  const [brand, setBYNand] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [requestModal, setRequestModal] = useState<{ carId: string; pricePerDay: number } | null>(null);
   const [mapModalCar, setMapModalCar] = useState<string | null>(null);
+  const [priceChartCar, setPriceChartCar] = useState<string | null>(null);
+  const [chartPeriod, setChartPeriod] = useState<'WEEK' | 'MONTH' | 'ALL'>('ALL');
   const [reqForm, setReqForm] = useState({ driver_id: '', start_date: '', end_date: '', message: '' });
 
   const { data: cars, isLoading, refetch } = useQuery({
@@ -44,6 +47,12 @@ const RenterCarSearch = () => {
     queryKey: ['renter-drivers', companyId],
     queryFn: () => renterService.getDrivers(companyId!),
     enabled: !!companyId,
+  });
+
+  const { data: priceHistory } = useQuery({
+    queryKey: ['car-price-history', priceChartCar, chartPeriod],
+    queryFn: () => renterService.getCarPriceHistory(companyId!, priceChartCar!, chartPeriod),
+    enabled: !!priceChartCar && !!companyId,
   });
 
   const requestMutation = useMutation({
@@ -67,6 +76,11 @@ const RenterCarSearch = () => {
 
   const totalCost = days > 0 && requestModal ? days * requestModal.pricePerDay : 0;
 
+  const formatChartDate = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+  };
+
   return (
     <div className="p-8">
       <div className="mb-6">
@@ -74,14 +88,14 @@ const RenterCarSearch = () => {
         <div className="flex gap-3 flex-wrap">
           <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5">
             <Search size={16} className="text-gray-400" />
-            <input type="text" placeholder="Марка авто" value={brand} onChange={e => setBrand(e.target.value)}
+            <input type="text" placeholder="Марка авто" value={brand} onChange={e => setBYNand(e.target.value)}
               className="bg-transparent text-white text-sm focus:outline-none w-32 placeholder-gray-500" />
           </div>
           <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5">
             <span className="text-gray-400 text-sm">до</span>
             <input type="number" placeholder="Макс. цена/день" value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
               className="bg-transparent text-white text-sm focus:outline-none w-32 placeholder-gray-500" />
-            <span className="text-gray-500 text-sm">₽</span>
+            <span className="text-gray-500 text-sm">BYN</span>
           </div>
           <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5">
             <Building2 size={16} className="text-gray-400" />
@@ -109,7 +123,7 @@ const RenterCarSearch = () => {
                   <Badge variant="green">Доступна</Badge>
                 </div>
                 <p className="text-gray-500 text-sm">{car.year} · {car.plate_number}</p>
-                <p className="text-green-400 font-semibold mt-1">{Number(car.price_per_day).toLocaleString('ru-RU')} ₽/день</p>
+                <p className="text-green-400 font-semibold mt-1">{Number(car.price_per_day).toLocaleString('ru-RU')} BYN/день</p>
                 {car.company && (
                   <p className="flex items-center gap-1 text-gray-500 text-xs mt-1">
                     <Building2 size={12} />
@@ -117,6 +131,12 @@ const RenterCarSearch = () => {
                   </p>
                 )}
                 <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => { setPriceChartCar(car.id); setChartPeriod('ALL'); }}
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 rounded-xl text-xs transition-colors"
+                  >
+                    <TrendingUp size={12} />График цен
+                  </button>
                   {car.iot_device && (
                     <button
                       onClick={() => setMapModalCar(car.id)}
@@ -182,9 +202,9 @@ const RenterCarSearch = () => {
             <div className="flex items-center justify-between p-4 bg-[#6C63FF]/10 border border-[#6C63FF]/20 rounded-xl">
               <div className="flex items-center gap-2 text-gray-300 text-sm">
                 <Calendar size={14} className="text-[#6C63FF]" />
-                {days} дней × {Number(requestModal?.pricePerDay || 0).toLocaleString('ru-RU')} ₽
+                {days} дней × {Number(requestModal?.pricePerDay || 0).toLocaleString('ru-RU')} BYN
               </div>
-              <p className="text-white font-bold">{totalCost.toLocaleString('ru-RU')} ₽</p>
+              <p className="text-white font-bold">{totalCost.toLocaleString('ru-RU')} BYN</p>
             </div>
           )}
           {requestMutation.isError && <p className="text-red-400 text-sm">Ошибка создания заявки</p>}
@@ -229,6 +249,55 @@ const RenterCarSearch = () => {
             </>
           );
         })()}
+      </Modal>
+
+      <Modal isOpen={!!priceChartCar} onClose={() => setPriceChartCar(null)} title="График цены" size="lg">
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            {(['WEEK', 'MONTH', 'ALL'] as const).map(p => (
+              <button key={p} onClick={() => setChartPeriod(p)}
+                className={`px-4 py-1.5 rounded-lg text-xs transition-colors ${chartPeriod === p ? 'bg-[#6C63FF] text-white' : 'bg-white/5 text-gray-400 hover:text-white'}`}>
+                {p === 'WEEK' ? 'Неделя' : p === 'MONTH' ? 'Месяц' : 'Всё время'}
+              </button>
+            ))}
+          </div>
+          <div className="bg-[#0f1923] rounded-xl p-4" style={{ height: 320 }}>
+            {priceHistory && priceHistory.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={priceHistory} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6C63FF" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#6C63FF" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e2a3b" />
+                  <XAxis dataKey="created_at" tickFormatter={formatChartDate} stroke="#4a5568" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#4a5568" fontSize={11} tickFormatter={(v: number) => `${v.toLocaleString('ru-RU')}BYN`} tickLine={false} axisLine={false} width={70} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#1e2a3b', border: '1px solid #2d3748', borderRadius: '8px', color: '#e2e8f0', fontSize: '12px' }}
+                    labelFormatter={(label) => new Date(label).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    formatter={(value: number) => [`${value.toLocaleString('ru-RU')} BYN`, 'Цена']}
+                  />
+                  <Area type="monotone" dataKey="price" stroke="#6C63FF" strokeWidth={2} fill="url(#priceGradient)" dot={false} activeDot={{ r: 4, fill: '#6C63FF' }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                <TrendingUp size={32} className="mr-3 opacity-40" />
+                <p>Нет данных об изменении цены</p>
+              </div>
+            )}
+          </div>
+          {priceHistory && priceHistory.length > 1 && (
+            <div className="flex gap-4 text-sm text-gray-400">
+              <span>Мин: <span className="text-white">{Math.min(...priceHistory.map(p => p.price)).toLocaleString('ru-RU')} BYN</span></span>
+              <span>Макс: <span className="text-white">{Math.max(...priceHistory.map(p => p.price)).toLocaleString('ru-RU')} BYN</span></span>
+              <span>Сейчас: <span className="text-white">{priceHistory[priceHistory.length - 1].price.toLocaleString('ru-RU')} BYN</span></span>
+              <span>Изменений: <span className="text-white">{priceHistory.length}</span></span>
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );

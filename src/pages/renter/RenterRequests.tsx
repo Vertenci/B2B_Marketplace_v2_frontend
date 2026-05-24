@@ -67,7 +67,7 @@ const RenterRequests = () => {
                     <div>
                       <p className="text-xs text-gray-500">Автомобиль</p>
                       <p className="text-sm text-white font-medium">{req.car.brand} {req.car.model}</p>
-                      <p className="text-xs text-gray-500">{req.car.plate_number} · {Number(req.car.price_per_day).toLocaleString('ru-RU')} ₽/день</p>
+                      <p className="text-xs text-gray-500">{req.car.plate_number} · {Number(req.car.price_per_day).toLocaleString('ru-RU')} BYN/день</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2 p-3 bg-white/5 rounded-xl">

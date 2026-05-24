@@ -310,7 +310,7 @@ const RenterFinances = () => {
               <p className="text-sm text-gray-400 mb-1">Текущий баланс</p>
               <p className="text-5xl font-bold text-white tracking-tight">
                 <AnimatedBalance value={Number(balance)} />
-                <span className="text-2xl ml-2 text-gray-400">₽</span>
+                <span className="text-2xl ml-2 text-gray-400">BYN</span>
               </p>
             </div>
 
@@ -388,14 +388,14 @@ const RenterFinances = () => {
                           </p>
                           {payment.commission_amount > 0 && (
                             <p className="text-xs text-gray-600">
-                              Комиссия: {Number(payment.commission_amount).toLocaleString('ru-RU')} ₽
+                              Комиссия: {Number(payment.commission_amount).toLocaleString('ru-RU')} BYN
                             </p>
                           )}
                         </div>
                       </div>
 
                       <p className="text-lg font-bold text-white whitespace-nowrap">
-                        {Number(payment.amount).toLocaleString('ru-RU')} ₽
+                        {Number(payment.amount).toLocaleString('ru-RU')} BYN
                       </p>
                     </div>
                   </Card>
@@ -461,8 +461,8 @@ const RenterFinances = () => {
                             {new Date(event.created_at).toLocaleString('ru-RU')}
                           </p>
                           <p className="text-xs text-gray-600">
-                            Баланс: {Number(event.balance_before).toLocaleString('ru-RU')} ₽ →{' '}
-                            {Number(event.balance_after).toLocaleString('ru-RU')} ₽
+                            Баланс: {Number(event.balance_before).toLocaleString('ru-RU')} BYN →{' '}
+                            {Number(event.balance_after).toLocaleString('ru-RU')} BYN
                           </p>
                         </div>
                       </div>
@@ -473,7 +473,7 @@ const RenterFinances = () => {
                         }`}
                       >
                         {event.event_type === 'TOP_UP' ? '+' : '-'}
-                        {Number(event.operation_amount).toLocaleString('ru-RU')} ₽
+                        {Number(event.operation_amount).toLocaleString('ru-RU')} BYN
                       </p>
                     </div>
                   </Card>

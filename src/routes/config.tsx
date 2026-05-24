@@ -15,6 +15,7 @@ import LessorRequests from '../pages/lessor/LessorRequests';
 import LessorRentals from '../pages/lessor/LessorRentals';
 import LessorFinances from '../pages/lessor/LessorFinances';
 import LessorEmployers from '../pages/lessor/LessorEmployers';
+import LessorReports from '../pages/lessor/LessorReports';
 
 import RenterDashboard from '../pages/renter/RenterDashboard';
 import RenterDrivers from '../pages/renter/RenterDrivers';
@@ -22,6 +23,7 @@ import RenterCarSearch from '../pages/renter/RenterCarSearch';
 import RenterRequests from '../pages/renter/RenterRequests';
 import RenterRentals from '../pages/renter/RenterRentals';
 import RenterFinances from '../pages/renter/RenterFinances';
+import RenterReports from '../pages/renter/RenterReports';
 
 import DriverRentals from '../pages/driver/DriverRentals';
 
@@ -88,6 +90,7 @@ export const router = createBrowserRouter([
           { path: '/lessor/:companyId/requests', element: <LessorRequests /> },
           { path: '/lessor/:companyId/rentals', element: <LessorRentals /> },
           { path: '/lessor/:companyId/finances', element: <LessorFinances /> },
+          { path: '/lessor/:companyId/reports', element: <LessorReports /> },
           { path: '/lessor/:companyId/employers', element: <LessorEmployers /> },
           {
             path: '/lessor/:companyId/profile',
@@ -105,6 +108,7 @@ export const router = createBrowserRouter([
           { path: '/renter/:companyId/requests', element: <RenterRequests /> },
           { path: '/renter/:companyId/rentals', element: <RenterRentals /> },
           { path: '/renter/:companyId/finances', element: <RenterFinances /> },
+          { path: '/renter/:companyId/reports', element: <RenterReports /> },
           {
             path: '/renter/:companyId/profile',
             element: <RenterDashboard />,

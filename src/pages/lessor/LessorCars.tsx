@@ -47,7 +47,13 @@ const LessorCars = () => {
 
   const { data: cars, isLoading: carsLoading } = useQuery({
     queryKey: ['lessor-cars', companyId],
-    queryFn: () => lessorService.getCars(companyId!, 0, 50),
+    queryFn: async () => {
+      const data = await lessorService.getCars(companyId!, 0, 50);
+      return data.sort((a, b) => {
+        const cmp = a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model);
+        return cmp || a.plate_number.localeCompare(b.plate_number);
+      });
+    },
     enabled: !!companyId,
     refetchInterval: (query) => {
         if (query.state.error) return false;
@@ -222,15 +228,12 @@ const LessorCars = () => {
                     <p className="text-gray-500 text-sm">
                       Гос. номер: <span className="text-gray-300">{car.plate_number}</span>
                       &nbsp;·&nbsp;VIN: <span className="text-gray-300">{car.vin}</span>
-                      &nbsp;·&nbsp;<span className="text-green-400">{Number(car.price_per_day).toLocaleString('ru-RU')} ₽/день</span>
+                      &nbsp;·&nbsp;<span className="text-green-400">{Number(car.price_per_day).toLocaleString('ru-RU')} BYN/день</span>
                     </p>
                     <div className="flex items-center gap-3 mt-1">
                       {car.iot_device ? (
                         <>
-                          {car.iot_device.is_online
-                            ? <Wifi size={12} className="text-green-400" />
-                            : <WifiOff size={12} className="text-gray-500" />
-                          }
+                          <Wifi size={12} className="text-green-400" />
                           <span className="text-xs text-gray-500">
                             {car.iot_device.device_identifier || 'IoT'}&nbsp;
                             {car.iot_device.battery_level != null && (
@@ -537,7 +540,7 @@ const LessorCars = () => {
 
           {/* Цена */}
           <div>
-            <label className="block text-sm text-gray-300 mb-1">Цена/день (₽)</label>
+            <label className="block text-sm text-gray-300 mb-1">Цена/день (BYN)</label>
             <input
               type="number"
               value={carForm.price_per_day}
@@ -785,7 +788,7 @@ const LessorCars = () => {
             {editCarErrors.vin && <p className="text-red-400 text-xs mt-1">{editCarErrors.vin}</p>}
           </div>
           <div>
-            <label className="block text-sm text-gray-300 mb-1">Цена/день (₽)</label>
+            <label className="block text-sm text-gray-300 mb-1">Цена/день (BYN)</label>
             <input type="number" value={editCarForm.price_per_day} onChange={e => { const v = e.target.value; if (v === '' || (Number(v) >= 1 && Number(v) <= 1000000)) { setEditCarForm(f => ({ ...f, price_per_day: v })); setEditCarErrors(prev => ({ ...prev, price_per_day: '' })); } }}
               min={1} max={1000000}
               className={`w-full px-3 py-2.5 bg-white/10 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#6C63FF]/60 text-sm ${editCarErrors.price_per_day ? 'border-red-500' : 'border-white/20'}`} />

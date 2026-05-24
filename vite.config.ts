@@ -12,23 +12,22 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
-        ws: false,
+        ws: true,
       },
       '/admin': {
         target: 'http://localhost:8000',
         changeOrigin: true,
         ws: true,
       },
-      '/minio': {  // Используйте без rewrite
+      '/minio': {
         target: 'http://127.0.0.1:9001',
         changeOrigin: true,
         ws: true,
-        // НЕ используйте rewrite, оставьте /minio в пути
       },
       '/storage': {
         target: 'http://127.0.0.1:9000',
         changeOrigin: true,
-      }
+      } 
     },
     allowedHosts: [
       'daybreak-repose-shortlist.ngrok-free.dev',

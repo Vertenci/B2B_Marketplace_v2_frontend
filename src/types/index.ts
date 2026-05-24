@@ -138,6 +138,7 @@ export interface RentalShort {
 }
 
 export interface TelemetryShort {
+  id: string;
   lat: number;
   lng: number;
   speed: number;

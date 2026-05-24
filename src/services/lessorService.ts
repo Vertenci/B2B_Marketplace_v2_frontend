@@ -2,7 +2,7 @@ import { apiClient } from '../api/client';
 import type {
   Car, IotDevice, Geofence, RentalRequest, Rental,
   Finance, CompanyUser, Company, LessorDashboard,
-  Telemetry, Violation, RentalDocument, RentalStatus, RentalRequestStatus,
+  Telemetry, TelemetryShort, Violation, RentalDocument, RentalStatus, RentalRequestStatus,
   BalanceOperationResponse
 } from '../types';
 
@@ -157,6 +157,11 @@ export const lessorService = {
     return res.data;
   },
 
+  async getRentalTelemetryHistory(companyId: string, rentalId: string, limit = 0): Promise<TelemetryShort[]> {
+    const res = await apiClient.get(`${base(companyId)}/rentals/${rentalId}/telemetry/history`, { params: { limit } });
+    return res.data;
+  },
+
   async getRentalViolations(companyId: string, rentalId: string): Promise<Violation[]> {
     const res = await apiClient.get(`${base(companyId)}/rentals/${rentalId}/violations`);
     return res.data;
@@ -217,5 +222,25 @@ export const lessorService = {
   async detachIot(companyId: string, carId: string): Promise<Car> {
       const res = await apiClient.delete(`${base(companyId)}/cars/${carId}/detach-iot`);
       return res.data;
+  },
+
+  async getReportsRentalsByCompany(companyId: string, period: string): Promise<{ company_name: string; count: number }[]> {
+    const res = await apiClient.get(`${base(companyId)}/reports/rentals-by-company`, { params: { period } });
+    return res.data;
+  },
+
+  async getReportsPaymentsByCompany(companyId: string, period: string): Promise<{ company_name: string; total: number }[]> {
+    const res = await apiClient.get(`${base(companyId)}/reports/payments-by-company`, { params: { period } });
+    return res.data;
+  },
+
+  async getReportsRentalsByCar(companyId: string, period: string): Promise<{ car_name: string; count: number }[]> {
+    const res = await apiClient.get(`${base(companyId)}/reports/rentals-by-car`, { params: { period } });
+    return res.data;
+  },
+
+  async getReportsViolationsByRenter(companyId: string, period: string): Promise<{ company_name: string; count: number }[]> {
+    const res = await apiClient.get(`${base(companyId)}/reports/violations-by-renter`, { params: { period } });
+    return res.data;
   },
 };
