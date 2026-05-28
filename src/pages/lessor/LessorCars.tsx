@@ -598,11 +598,11 @@ const LessorCars = () => {
               }
               
               // Гос. номер (белорусский формат)
-              const plateRegex = /^[АВЕКМНОРСТХ]\d{3}[АВЕКМНОРСТХ]{2}[1-7]$/;
+              const plateRegex = /^[АВЕІКМНОРСТХУ]\d{3}[АВЕІКМНОРСТХУ]{2}[1-7]$/;
               if (!carForm.plate_number.trim()) {
                 errors.plate_number = 'Введите гос. номер';
               } else if (!plateRegex.test(carForm.plate_number)) {
-                errors.plate_number = 'Формат: А123ВС77 (без 0, I, O, Q)';
+                errors.plate_number = 'Формат: А123ВС7 (А, В, Е, І, К, М, Н, О, Р, С, Т, Х, У)';
               }
               
               // VIN (17 символов, без I, O, Q)
